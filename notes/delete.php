@@ -22,7 +22,7 @@ if($id){
         $stmtImage->execute([$id]);
 
         if($imageName){
-            $result = deleteFile('../images', $imageName);
+            $result = deleteFile('../images/uploads/', $imageName);
             if($result !== 'success'){
                 $msg = $result;
                 $response = ["message" => $msg];

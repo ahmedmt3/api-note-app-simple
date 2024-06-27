@@ -48,7 +48,7 @@ if ($id) {
                 if($image !== null){
                     $result = imageUpload($image);
                     if($result === 'success'){
-                        deleteFile('../images', $oldImage);// Delete the Old One
+                        deleteFile('../images/uploads', $oldImage);// Delete the Old One
                         global $uploadedImgName;
                         $posXval = "DEFAULT";
                         $posYval = "DEFAULT";

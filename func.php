@@ -41,7 +41,7 @@ function imageUpload($imageRequest){
     }
 
     if(empty($errMsg)){
-        $targetDir = "../images/";
+        $targetDir = "../images/uploads/";
         // Ensure the target directory exists
         if (!file_exists($targetDir)) {
             if (!mkdir($targetDir, 0777, true)) {
