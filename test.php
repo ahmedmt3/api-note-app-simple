@@ -1,20 +1,14 @@
 <?php
 
 include "connect.php";
+include "func.php";
 
 
 // $sql = "INSERT INTO `notes` (title, content) VALUES ('Hellloo', 'NewContent')";
 
-// $stmt = $con->prepare($sql);
-// $stmt->execute();
+$count = getAllData('images');
 
-// if($stmt->rowCount() > 0){
-//     echo " Succes";
-//     $id = $con->lastInsertId();
-//     echo "Last Id = " . $id;
-// }else{
-//     echo "Failed";
-// }
+// echo $count;
 
 
 

@@ -1,7 +1,7 @@
 <?php
 
-define('bytesToMB', 1048576);//Const convert bytes to MB
-
+//Const converts bytes to MB
+define('bytesToMB', 1048576);
 
 function filterRequest($requestName){
     return htmlspecialchars(strip_tags($_POST[$requestName]));
@@ -18,7 +18,107 @@ function isValidHexColor($color) {
     return preg_match('/^#[0-9A-Fa-f]{6}$/', $color) === 1;
 }
 
+// Print Json Error
+function errorResponse($msg = []){
+    $response = ["status" => 'failed', "data" => $msg];
+    return json_encode($response);
+}
+// ===================[ Checks If Row Exist ]===================
+function checkRowExist(string $table, array $columns, array $values): bool|string{
+    global $con;
+    // Query
+    $sql = "SELECT * FROM $table WHERE " . implode(' = ? OR ', $columns) . " = ?";
+
+    try{
+        $stmt = $con->prepare($sql);
+        $stmt->execute($values);
+        $count = $stmt->rowCount();
+
+        if($count > 0){
+            return true;
+        }else{
+            return false;
+        }
+    }catch (PDOException $e){
+        return "Error: " . $e->getMessage();
+    }
+
+
+}
+
+// ===============================================================
+// =======================[ Get All Data ]========================
+// ===============================================================
+
+function getAllData(string $table, string $orderBy = null, bool $desc = false):int{
+    global $con;
+    $status = "failed";
+    $data = [];
+    $response = ["status" => $status, "data" => $data];
+    // Query
+    $sql = "SELECT * FROM `$table`";
+    if($orderBy !== null){
+        $sql .= " ORDER BY `$orderBy`";
+        if($desc){
+            $sql .= " DESC";
+        }
+    }
+    
+    try{
+        $stmt = $con->prepare($sql);
+        $stmt->execute();
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $count  = $stmt->rowCount();
+
+        $status = "success";
+        $response['status'] = $status;
+        $response['data'] = $data;
+        echo json_encode($response);
+        return $count;
+
+    } catch (PDOException $e){
+        $response['data'] = $e->getMessage();
+        echo json_encode($response);
+    }
+}
+// ==============================================================
+// =======================[ Insert Data ]========================
+// ==============================================================
+
+function insertData(string $table, $data){
+    global $con;
+    $status = "failed";
+    $data = [];
+    $response = ["status" => $status, "data" => $data];
+    // Data Placeholders & Fields
+    foreach ($data as $field => $v)
+        $ins[] = ':' . $field; 
+    $ins = implode(',', $ins);
+    $fields = implode(',', array_keys($data));
+    //Query
+    $sql = "INSERT INTO $table ($fields) VALUES ($ins)";
+    
+    $stmt = $con->prepare($sql);
+
+    // Binding values to placeholders
+    foreach ($data as $f => $v) {
+        $stmt->bindValue(':' . $f, $v);
+    }
+    $stmt->execute();
+    $count = $stmt->rowCount();
+    
+    if ($count > 0) {
+        echo json_encode(array("status" => "success"));
+    } else {
+        echo json_encode(array("status" => "failure"));
+    }
+  
+    return $count;
+    
+}
+// ===============================================================
 // =======================[ Image Upload ]========================
+// ===============================================================
 
 function imageUpload($imageRequest){
     global $errMsg;
@@ -60,8 +160,9 @@ function imageUpload($imageRequest){
         return $errMsg;
     }
 }
-
+// =======================================================
 //====================[ Delete File ]=====================
+// =======================================================
 
 function deleteFile($dir, $fileName){
     $path = $dir . '/' . $fileName;
