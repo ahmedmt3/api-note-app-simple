@@ -10,7 +10,7 @@ $content = isset($_POST['content']) ? $_POST['content'] : null;
 $color = isset($_POST['color']) ? $_POST['color'] : null;
 // Image Table
 $image = isset($_FILES['image']) ? $_FILES['image'] : null;
-$oldImage = isset($_FILES['old_image']) ? $_FILES['old_image'] : null;
+$oldImage = isset($_POST['old_image']) ? $_POST['old_image'] : null;
 $imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : "DEFAULT";
 $imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : "DEFAULT";
 
@@ -69,7 +69,7 @@ if ($id && $title && $content) {
                 exit;
             }
 
-        }elseif($image !== null){// If It's New Image
+        }elseif($image !== null && $oldImage == null){// If It's New Image
             
             $uploadRes = imageUpload($image);
             if($uploadRes === 'success'){
@@ -92,6 +92,12 @@ if ($id && $title && $content) {
                 exit;
             }
 
+        }elseif($imagePosX !== null && $imagePosY !== null){
+            $data = [
+                'image_pos_x' => $imagePosX,
+                'image_pos_y' => $imagePosY
+            ];
+            $msg = updateData('images', $data, 'note_id', $id);
         }
         //==================[ Result Message ]===================
         $status = 'success';
