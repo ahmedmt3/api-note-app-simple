@@ -117,7 +117,7 @@ function updateData(string $table, $data, $whereCol, $whereVal){
         $stmt->execute($values);
         $count = $stmt->rowCount();
         if($count > 0){
-            $result = "success";
+            $result = "Updated Successfully";
         }else{
             $result = "Update failed";
         }

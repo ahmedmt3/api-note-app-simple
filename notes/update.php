@@ -1,9 +1,7 @@
 <?php
 include "../connect.php";
 include "../func.php";
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 
 // Notes Tabl
 $id = isset($_POST['id']) ? $_POST['id'] : null;
@@ -12,13 +10,14 @@ $content = isset($_POST['content']) ? $_POST['content'] : null;
 $color = isset($_POST['color']) ? $_POST['color'] : null;
 // Image Table
 $image = isset($_FILES['image']) ? $_FILES['image'] : null;
-$oldImage = isset($_POST['old_image']) ? $_POST['old_image'] : null;
+$oldImage = isset($_FILES['old_image']) ? $_FILES['old_image'] : null;
 $imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : "DEFAULT";
 $imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : "DEFAULT";
 
-
+$status = 'failed';
 $msg = '';
-$response = [];
+$response = ['status' => $status, 'message' => $msg];
+
 
 if ($id && $title && $content) {
     //Format the positions
@@ -45,7 +44,6 @@ if ($id && $title && $content) {
             'last_modified' => $lastMod
         ];
         $noteData = $color == null ? $noteDataWithoutColor : $noteDataWithColor;
-        //==================[ Result Message ]===================
         $msg = updateData('notes', $noteData, 'id', $id);
 
         // If image sent to update the old one
@@ -66,7 +64,7 @@ if ($id && $title && $content) {
             }else{
                 global $errMsg;
                 $msg = implode(' and ', $errMsg);
-                $response = ['message' => $msg];
+                $response['message'] = $msg;
                 echo json_encode($response);
                 exit;
             }
@@ -89,13 +87,14 @@ if ($id && $title && $content) {
             }else{
                 global $errMsg;
                 $msg = implode(' and ', $errMsg);
-                $response = ['message' => $msg];
+                $response['message'] = $msg;
                 echo json_encode($response);
                 exit;
             }
 
         }
-   
+        //==================[ Result Message ]===================
+        $status = 'success';
         
     } catch (PDOException $e) {
         $msg = "PDO: " . $e->getMessage();
@@ -104,5 +103,5 @@ if ($id && $title && $content) {
     $msg = "Please provide id, title and content";
 }
 
-$response = ["message" => $msg];
+$response = ['status' => $status, 'message' => $msg];
 echo json_encode($response);

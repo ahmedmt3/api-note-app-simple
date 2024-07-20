@@ -11,8 +11,9 @@ $image = isset($_FILES['image']) ? $_FILES['image'] : null;
 $imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : "DEFAULT";
 $imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : "DEFAULT";
 
+$status = 'failed';
 $msg = '';
-$response = [];
+$response = ['status' => $status, 'message' => $msg];
 
 if($title && $content){
 
@@ -20,7 +21,7 @@ if($title && $content){
     if($color !== "DEFAULT"){
         if(!isValidHexColor($color)){
             $msg = "Invalid hex color format";
-            $response = ['message' => $msg];
+            $response['message'] = $msg;
             echo json_encode($response);
             exit;
         }
@@ -58,32 +59,30 @@ if($title && $content){
                     // Checking image insertion
                     if($imgRes <= 0){
                         $msg = "Image insertion failed";
-                        $response = ['message' => $msg];
+                        $response['message'] = $msg;
                         echo json_encode($response);
                         exit;
                     }
                 }else{  //When upload fails
                     global $errMsg;
                     $msg = implode(' and ', $errMsg);
-                    $response = ['message' => $msg];
+                    $response['message'] = $msg;
                     echo json_encode($response);
                     exit;
                 }
             }
-            $msg = "success";
+            $status = 'success';
+            $msg = 'Note Added Successfully';
     
         }else{
-            $msg = "Sql failed";
+            $msg = "Failed to add note";
         }
     }catch(PDOException $e){
-        $msg = 'SQL: ' . $e->getMessage();
+        $msg = $e->getMessage();
     }
 }else{
     $msg = "Try to add title & content";
 }
 
-$response = ["message" => $msg];
+$response = ['status' => $status, 'message' => $msg];
 echo json_encode($response);
-
-
-
