@@ -5,75 +5,64 @@ include "../func.php";
 // Note Table
 $title = isset($_POST['title']) ? $_POST['title'] : null;
 $content = isset($_POST['content']) ? $_POST['content'] : null;
-$color = isset($_POST['color']) ? $_POST['color'] : null;  // Optional
+$color = isset($_POST['color']) ? $_POST['color'] : "DEFAULT";  // Optional
 // Images table
 $image = isset($_FILES['image']) ? $_FILES['image'] : null;
-$imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : null;
-$imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : null;
+$imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : "DEFAULT";
+$imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : "DEFAULT";
 
 $msg = '';
 $response = [];
 
 if($title && $content){
-    
-    try{
-        //===========================[ Note Insertion ]=======================
 
-        $columns = ['title', 'content', 'color'];
-        $values = ["?", "?"];
-        $params = [$title, $content];
-
-        if($color == null){
-            $values[] = "DEFAULT"; 
-
-        }elseif(isValidHexColor($color)){
-            $values[] = "?";
-            $params[] = $color;
-
-        }else{
+    //Color validation
+    if($color !== "DEFAULT"){
+        if(!isValidHexColor($color)){
             $msg = "Invalid hex color format";
             $response = ['message' => $msg];
             echo json_encode($response);
             exit;
         }
+    }
+    //Format the positions
+    if($imagePosX !== "DEFAULT"){
+        $imagePosX = number_format(floatval($imagePosX), 3, '.', '');
+    }
+    if($imagePosY !== "DEFAULT"){
+        $imagePosY = number_format(floatval($imagePosY), 3, '.', '');
+    }
+    //===========================[ Note Insertion ]=======================
+    try{
+        $noteData = [
+            'title' => $title,
+            'content' => $content,
+            'color' => $color
+        ];
+        $result = insertData('notes', $noteData);
 
-        $sql = "INSERT INTO `notes`(" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ")";
-        $stmt = $con->prepare($sql);
-        $stmt->execute($params);
-    
-        if($stmt->rowCount() > 0){
-            $noteId = $con->lastInsertId();
-
+        if($result){
             //=======================[ Image Insertion ]========================
+            $noteId = $con->lastInsertId();
             if($image !== null){
-                $result = imageUpload($image);
-                if($result === 'success'){
+                $uploadRes = imageUpload($image);
+                if($uploadRes === 'success'){
                     global $uploadedImgName;
-                    $imgVals = ['?', '?', 'DEFAULT', 'DEFAULT'];
-                    $imgParams = [$noteId, $uploadedImgName];
-
-                    if($imagePosX !== null){
-                        $imgVals[2] = '?';
-                        $imgParams[] = number_format(floatval($imagePosX), 3, '.', '');
-                    }
-                    if($imagePosY !== null){
-                        $imgVals[3] = '?';
-                        $imgParams[] = number_format(floatval($imagePosY), 3, '.', '');
-                    }
-                    
-                    $sqlImage = "INSERT INTO `images` (`note_id`, `image_name`, `image_pos_x`, `image_pos_y`)
-                    VALUES (" . implode(', ', $imgVals) . ")";
-                    $stmtImage = $con->prepare($sqlImage);
-                    $stmtImage->execute($imgParams);
+                    $imgData = [
+                        'note_id' => $noteId,
+                        'image_name' => $uploadedImgName,
+                        'image_pos_x' => $imagePosX,
+                        'image_pos_y' => $imagePosY
+                    ];
+                    $imgRes = insertData('images', $imgData);
                     // Checking image insertion
-                    if($stmtImage->rowCount() <= 0){
-                        $msg = "Image insert failed: " . implode(", ", $stmtImage->errorInfo());
+                    if($imgRes <= 0){
+                        $msg = "Image insertion failed";
                         $response = ['message' => $msg];
                         echo json_encode($response);
                         exit;
                     }
-
-                }else{
+                }else{  //When upload fails
                     global $errMsg;
                     $msg = implode(' and ', $errMsg);
                     $response = ['message' => $msg];

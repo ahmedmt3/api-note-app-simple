@@ -50,11 +50,9 @@ function checkRowExist(string $table, array $columns, array $values): bool|strin
 // =======================[ Get All Data ]========================
 // ===============================================================
 
-function getAllData(string $table, string $orderBy = null, bool $desc = false):int{
+function getAllData(string $table, string $orderBy = null, bool $desc = false){
     global $con;
-    $status = "failed";
-    $data = [];
-    $response = ["status" => $status, "data" => $data];
+    
     // Query
     $sql = "SELECT * FROM `$table`";
     if($orderBy !== null){
@@ -63,23 +61,11 @@ function getAllData(string $table, string $orderBy = null, bool $desc = false):i
             $sql .= " DESC";
         }
     }
-    
-    try{
-        $stmt = $con->prepare($sql);
-        $stmt->execute();
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $count  = $stmt->rowCount();
+    $stmt = $con->prepare($sql);
+    $stmt->execute();
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return $data;
 
-        $status = "success";
-        $response['status'] = $status;
-        $response['data'] = $data;
-        echo json_encode($response);
-        return $count;
-
-    } catch (PDOException $e){
-        $response['data'] = $e->getMessage();
-        echo json_encode($response);
-    }
 }
 // ==============================================================
 // =======================[ Insert Data ]========================
@@ -87,17 +73,14 @@ function getAllData(string $table, string $orderBy = null, bool $desc = false):i
 
 function insertData(string $table, $data){
     global $con;
-    $status = "failed";
-    $data = [];
-    $response = ["status" => $status, "data" => $data];
     // Data Placeholders & Fields
     foreach ($data as $field => $v)
         $ins[] = ':' . $field; 
     $ins = implode(',', $ins);
     $fields = implode(',', array_keys($data));
+    
     //Query
     $sql = "INSERT INTO $table ($fields) VALUES ($ins)";
-    
     $stmt = $con->prepare($sql);
 
     // Binding values to placeholders
@@ -106,15 +89,59 @@ function insertData(string $table, $data){
     }
     $stmt->execute();
     $count = $stmt->rowCount();
-    
-    if ($count > 0) {
-        echo json_encode(array("status" => "success"));
-    } else {
-        echo json_encode(array("status" => "failure"));
-    }
   
     return $count;
     
+}
+// ===============================================================
+// =======================[ Update Data ]=========================
+// ===============================================================
+
+function updateData(string $table, $data, $whereCol, $whereVal){
+    global $con;
+    $result = '';
+
+    $columns = [];
+    $values = [];
+    foreach($data as $key => $val){
+        $columns[] = $key;
+        $values[] = $val;
+    }
+
+    $values[] = $whereVal;
+    // Query
+    $sql = "UPDATE $table SET " . implode(' = ?, ', $columns) . " = ? WHERE `$whereCol` = ?";
+
+    try{
+        $stmt = $con->prepare($sql);
+        $stmt->execute($values);
+        $count = $stmt->rowCount();
+        if($count > 0){
+            $result = "success";
+        }else{
+            $result = "Update failed";
+        }
+        return $result;
+
+    }catch(PDOException $e){
+        $result = $e->getMessage();
+        return $result;
+    }
+}
+
+// ===============================================================
+// =======================[ Delete Data ]=========================
+// ===============================================================
+
+function deleteData(string $table, string $where, $whereVal){
+    global $con;
+    //Query
+    $sql = "DELETE FROM $table WHERE $where = ?";
+
+    $stmt = $con->prepare($sql);
+    $stmt->execute([$whereVal]);
+    $count = $stmt->rowCount();
+    return $count;
 }
 // ===============================================================
 // =======================[ Image Upload ]========================
@@ -165,7 +192,7 @@ function imageUpload($imageRequest){
 // =======================================================
 
 function deleteFile($dir, $fileName){
-    $path = $dir . '/' . $fileName;
+    $path = $dir . $fileName;
     if(file_exists($path)){
         if(unlink($path)){
             return "success";

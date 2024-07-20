@@ -1,44 +1,44 @@
 <?php
 include "../connect.php";
 include "../func.php";
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 $id = isset($_POST['id']) ? $_POST['id'] : null;
 $imageName = isset($_POST['image_name']) ? $_POST['image_name'] : null;
 
+$status = 'failed';
 $msg = '';
-$response = [];
+$response = ['status' => $status, 'message' => $msg];
 
 if($id){
     try{
         // Begin Transacion
         $con->beginTransaction();
 
-        //Delete the  Note
-        $stmtNote = $con->prepare("DELETE FROM notes WHERE id = ?");
-        $stmtNote->execute([$id]);
+        $noteDeleted = deleteData('notes', 'id', $id);
+        $imgDeleted = deleteData('images', 'note_id', $id);
 
-        //Delete the Note's Image
-        $stmtImage = $con->prepare("DELETE FROM images WHERE note_id = ?");
-        $stmtImage->execute([$id]);
-
-        if($imageName){
-            $result = deleteFile('../images/uploads/', $imageName);
-            if($result !== 'success'){
-                $msg = $result;
-                $response = ["message" => $msg];
-                echo json_encode($response);
-                $con->rollBack();
-                exit;
+        if($noteDeleted){
+            // Delete The Image If Exist
+            if($imageName){
+                $result = deleteFile('../images/uploads/', $imageName);
+                if($result !== 'success'){
+                    $con->rollBack();
+                    $msg = $result;
+                    $response['message'] = $msg;
+                    echo json_encode($response);
+                    exit;
+                }
             }
-        }
-
-        if($stmtNote->rowCount() > 0){
             $con->commit(); // Commit the Transaction
-            $msg = "success";
+            $status = "success";
+            $msg = "Note Deleted Successfully";
 
         }else{
             $con->rollBack(); //RollBack the Transaction
-            $msg = "failed to delete";
+            $msg = "Failed to delete note";
         }
 
     }catch(PDOException $e){
@@ -49,6 +49,5 @@ if($id){
 }else{
     $msg = "No id sent";
 }
-
-$response = ["message" => $msg];
+$response = ['status' => $status, 'message' => $msg];
 echo json_encode($response);

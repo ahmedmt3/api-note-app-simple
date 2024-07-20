@@ -7,7 +7,7 @@ $data = [];
 $response = ["status" => $status, "data" => $data];
 
 try{
-    $data = getAllData('images');
+    $data = getAllData('users');
     if($data){
         $status = 'success';
         $response = ['status' => $status, 'data' => $data];

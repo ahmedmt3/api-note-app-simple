@@ -1,6 +1,9 @@
 <?php
 include "../connect.php";
 include "../func.php";
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Notes Tabl
 $id = isset($_POST['id']) ? $_POST['id'] : null;
@@ -10,114 +13,95 @@ $color = isset($_POST['color']) ? $_POST['color'] : null;
 // Image Table
 $image = isset($_FILES['image']) ? $_FILES['image'] : null;
 $oldImage = isset($_POST['old_image']) ? $_POST['old_image'] : null;
-$imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : null;
-$imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : null;
+$imagePosX = isset($_POST['image_pos_x']) ? $_POST['image_pos_x'] : "DEFAULT";
+$imagePosY = isset($_POST['image_pos_y']) ? $_POST['image_pos_y'] : "DEFAULT";
 
 
 $msg = '';
 $response = [];
 
-if ($id) {
+if ($id && $title && $content) {
+    //Format the positions
+    if($imagePosX !== "DEFAULT"){
+        $imagePosX = number_format(floatval($imagePosX), 3, '.', '');
+    }
+    if($imagePosY !== "DEFAULT"){
+        $imagePosY = number_format(floatval($imagePosY), 3, '.', '');
+    }
     try {
-        $fields = [];
-        $params = [];
+        $lastMod = new DateTime();
+        date_add($lastMod, date_interval_create_from_date_string("1 Hours"));//Summer Time
+        $lastMod = $lastMod->format('Y-m-d H:i:s');
 
-        if ($title !== null) {
-            $fields[] = "`title` = ?";
-            $params[] = $title;
-        }
-        if ($content !== null) {
-            $fields[] = "`content` = ?";
-            $params[] = $content;
-        }
-        if ($color !== null) {
-            $fields[] = "`color` = ?";
-            $params[] = $color;
-        }
+        $noteDataWithColor = [
+            'title' => $title,
+            'content' => $content,
+            'color' => $color,
+            'last_modified' => $lastMod
+        ];
+        $noteDataWithoutColor = [
+            'title' => $title,
+            'content' => $content,
+            'last_modified' => $lastMod
+        ];
+        $noteData = $color == null ? $noteDataWithoutColor : $noteDataWithColor;
+        //==================[ Result Message ]===================
+        $msg = updateData('notes', $noteData, 'id', $id);
 
-        if (count($fields) > 0) {
-            $fields[] = "`last_modified` = DEFAULT";
-            $params[] = $id;
-            $sql = "UPDATE `notes` SET " . implode(", ", $fields) . " WHERE `id` = ?";
-            $stmt = $con->prepare($sql);
-            $stmt->execute($params);
+        // If image sent to update the old one
+        if($oldImage !== null){
 
-            if ($stmt->rowCount() > 0) {
+            $uploadRes = imageUpload($image);
+            if($uploadRes === 'success'){
+                deleteFile('../images/uploads/', $oldImage);// Delete the Old One
+                global $uploadedImgName;
+                $imgData = [
+                    'image_name' => $uploadedImgName,
+                    'image_pos_x' => $imagePosX,
+                    'image_pos_y' => $imagePosY
+                ];
+                //==================[ Result Message ]===================
+                $msg = updateData('images', $imgData, 'note_id', $id);
 
-                // If image sent and positions
-                if($image !== null){
-                    $result = imageUpload($image);
-                    if($result === 'success'){
-                        deleteFile('../images/uploads', $oldImage);// Delete the Old One
-                        global $uploadedImgName;
-                        $posXval = "DEFAULT";
-                        $posYval = "DEFAULT";
-                        $imgParams = [$uploadedImgName];
-
-                        if($imagePosX !== null){
-                            $posXval = "?";
-                            $imagePosX = number_format(floatval($imagePosX), 3, '.', '');
-                            $imgParams[] = $imagePosX;
-                        }
-                        if($imagePosY !== null){
-                            $posYval = "?";
-                            $imagePosY = number_format(floatval($imagePosY), 3, '.', '');
-                            $imgParams[] = $imagePosY;
-                        }
-                        $imgParams[] = $id;
-
-                        $sqlImage = "UPDATE `images` SET `image_name` = ?, `image_pos_x` = $posXval, `image_pos_y` = $posYval
-                        WHERE `note_id` = ?";
-                        $stmtImage = $con->prepare($sqlImage);
-                        $stmtImage->execute($imgParams);
-                        // Done
-                        $msg = "success";
-
-                    }else{
-                        global $errMsg;
-                        $msg = implode(' and ', $errMsg);
-                        $response = ['message' => $msg];
-                        echo json_encode($response);
-                        exit;
-                    }
-                }elseif($imagePosX !== null || $imagePosY !== null){
-                    // If There's Not New Image Sent, Check for Positins
-                    
-                    $imgParams = [];
-                    $sqlImage = "";
-                    if ($imagePosX !== null) {
-                        $imagePosX = number_format(floatval($imagePosX), 3, '.', '');
-                        $imgParams[] = $imagePosX;
-                        $sqlImage = "UPDATE `images` SET `image_pos_x` = ?";
-                    }
-                    if ($imagePosY !== null) {
-                        $imagePosY = number_format(floatval($imagePosY), 3, '.', '');
-                        $imgParams[] = $imagePosY;
-                        $sqlImage = $sqlImage . ", `image_pos_y` = ?";
-                    }
-
-                    $imgParams[] = $id;
-
-                    $sqlImage = $sqlImage . "WHERE `note_id` = ?";
-                    $stmtImage = $con->prepare($sqlImage);
-                    $stmtImage->execute($imgParams);
-
-                    
-                    $msg = "success";
-                    
-                }
-                
-            } else {// whene no Row affected
-                $msg = "fail";
+            }else{
+                global $errMsg;
+                $msg = implode(' and ', $errMsg);
+                $response = ['message' => $msg];
+                echo json_encode($response);
+                exit;
             }
-        } else {// when no Title & Content
-            $msg = "No fields to update";
+
+        }elseif($image !== null){// If It's New Image
+            
+            $uploadRes = imageUpload($image);
+            if($uploadRes === 'success'){
+                global $uploadedImgName;
+                $imgData = [
+                    'note_id' => $id,
+                    'image_name' => $uploadedImgName,
+                    'image_pos_x' => $imagePosX,
+                    'image_pos_y' => $imagePosY
+                ];
+                $imgInsert = insertData('images', $imgData);
+                //==================[ Result Message ]===================
+                $msg = $imgInsert ? "success" : "Image Insert Failed";
+
+            }else{
+                global $errMsg;
+                $msg = implode(' and ', $errMsg);
+                $response = ['message' => $msg];
+                echo json_encode($response);
+                exit;
+            }
+
         }
+   
+        
     } catch (PDOException $e) {
-        $msg = "SQL: " . $e->getMessage();
+        $msg = "PDO: " . $e->getMessage();
     }
 } else {
-    $msg = "No ID provided";
+    $msg = "Please provide id, title and content";
 }
 
 $response = ["message" => $msg];

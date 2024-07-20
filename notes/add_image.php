@@ -3,6 +3,6 @@ include "../connect.php";
 include "../func.php";
 
 
-if(imageUpload('image') == 'success'){
+// if(imageUpload('image') == 'success'){
     
-}
+// }
