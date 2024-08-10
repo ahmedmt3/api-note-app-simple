@@ -14,11 +14,11 @@ $response = ['status' => $status, 'message' => $msg];
 
 if($username && $password){
     //Checking if User Exist
-    $userExist = checkRowExist('users', ['username', 'password'], [$username, $password]);
-    if ($userExist) {
+    $user = getUser($username, sha1($password));
+    if ($user) {
         $status = 'success';
         $msg = 'Logged In Successfully';
-        $response = ['status' => $status, 'message' => $msg];
+        $response = ['status' => $status, 'message' => $msg, 'user' => $user];
         
     }else{
         $msg = 'Invalid Username Or Password';

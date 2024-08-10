@@ -27,7 +27,7 @@ function errorResponse($msg = []){
 function checkRowExist(string $table, array $columns, array $values): bool|string{
     global $con;
     // Query
-    $sql = "SELECT * FROM $table WHERE " . implode(' = ? OR ', $columns) . " = ?";
+    $sql = "SELECT * FROM $table WHERE " . implode(' = ? AND ', $columns) . " = ?";
 
     try{
         $stmt = $con->prepare($sql);
@@ -202,4 +202,17 @@ function deleteFile($dir, $fileName){
     }else{
         return "File does not exist";
     }
+}
+// =======================================================
+//======================[ GET USER ]======================
+// =======================================================
+
+function getUser(String $username, String $password){
+    global $con;
+    $sql = "SELECT * FROM `users` WHERE `username` = ? AND `password` = ?";
+
+    $stmt = $con->prepare($sql);
+    $stmt->execute([$username, $password]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $user;
 }

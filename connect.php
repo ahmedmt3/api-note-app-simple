@@ -31,6 +31,7 @@ function checkAuthenticate(){
             exit;
         }
     } else {
+        echo "Not Authorized";
         exit;
     }
 }

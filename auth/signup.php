@@ -27,7 +27,7 @@ if($username && $email && $password){
             $userAdded = insertData('users', $data);
             if($userAdded){
                 $status = "success";
-                $msg = "User Added Successfully";
+                $msg = "Account Created Successfully";
                 $response = ['status' => $status, 'message' => $msg];
 
             }else{
