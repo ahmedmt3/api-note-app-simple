@@ -12,26 +12,27 @@ try {
     header("Content-Type: application/json");
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With, Access-Control-Allow-Origin");
-    header("Access-Control-Allow-Methods: POST, OPTIONS, GET");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 
     checkAuthenticate();
-
 } catch (PDOException $e) {
     echo $e->getMessage();
 }
 
 
-function checkAuthenticate(){
+function checkAuthenticate()
+{
     if (isset($_SERVER['PHP_AUTH_USER'])  && isset($_SERVER['PHP_AUTH_PW'])) {
 
-        if ($_SERVER['PHP_AUTH_USER'] != "ahmed" ||  $_SERVER['PHP_AUTH_PW'] != "amt123"){
+        if ($_SERVER['PHP_AUTH_USER'] != "ahmed" ||  $_SERVER['PHP_AUTH_PW'] != "amt123") {
             header('WWW-Authenticate: Basic realm="My Realm"');
             header('HTTP/1.0 401 Unauthorized');
             echo 'Page Not Found';
             exit;
         }
     } else {
-        echo "Not Authorized";
+        http_response_code(401);
+        echo json_encode(["errors" => "Unauthorized"]);
         exit;
     }
 }
